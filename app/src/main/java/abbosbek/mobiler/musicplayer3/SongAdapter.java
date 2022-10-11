@@ -2,6 +2,7 @@ package abbosbek.mobiler.musicplayer3;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.view.LayoutInflater;
@@ -73,6 +74,8 @@ public class SongAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         // play song on item click
         viewHolder.itemView.setOnClickListener(view -> {
+            //start the player service
+            context.startService(new Intent(context.getApplicationContext(),PlayerService.class));
             if (!player.isPlaying()){
                 player.setMediaItems(getMediaItems(),position,0);
             }else {

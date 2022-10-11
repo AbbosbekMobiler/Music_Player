@@ -17,8 +17,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.content.ComponentName;
 import android.content.ContentUris;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -28,6 +32,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.provider.MediaStore;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -91,6 +96,7 @@ public class MainActivity extends AppCompatActivity {
     // repeat mode
     int repeatMode = 1; // repeat all = 1,repeat one = 2,shuffle all = 3
 
+    boolean isBound = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -104,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         Objects.requireNonNull(getSupportActionBar()).setTitle(getResources().getString(R.string.app_name));
 
-        player = new ExoPlayer.Builder(this).build();
+//        player = new ExoPlayer.Builder(this).build();
 
         // recyclerview
         recyclerView = findViewById(R.id.recyclerView);
@@ -116,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
            }
         });
 
-        storagePermissionLauncher.launch(permission);
+//        storagePermissionLauncher.launch(permission);
 
         // record audio permission
         recordAudioPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),granted->{
@@ -165,9 +171,34 @@ public class MainActivity extends AppCompatActivity {
 
         blurImageView = findViewById(R.id.blurImageView);
 
-        playerControls();
+//        playerControls();
+        doBindService();
 
     }
+
+    private void doBindService() {
+        Intent playerServiceIntent = new Intent(this,PlayerService.class);
+        bindService(playerServiceIntent,playerServiceConnection, Context.BIND_AUTO_CREATE);
+        isBound = true;
+    }
+
+    ServiceConnection playerServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            PlayerService.ServiceBinder binder = (PlayerService.ServiceBinder) iBinder;
+            player = binder.getPlayerService().player;
+            isBound = true;
+            storagePermissionLauncher.launch(permission);
+
+            playerControls();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+
+        }
+    };
+
 
     private void playerControls() {
         // song name marquee
@@ -489,10 +520,18 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (player.isPlaying()){
-            player.stop();
+//        if (player.isPlaying()){
+//            player.stop();
+//        }
+//        player.release();
+        doUnBindService();
+    }
+
+    private void doUnBindService() {
+        if (isBound){
+            unbindService(playerServiceConnection);
+            isBound = false;
         }
-        player.release();
     }
 
     @SuppressLint("SuspiciousIndentation")
